@@ -3,9 +3,6 @@ from collections import defaultdict
 
 from ultralytics.utils.plotting import Annotator, colors
 
-from shapely.geometry import Polygon
-from shapely.geometry.point import Point
-
 class ObjectCounter:
     def __init__(self):
 
@@ -29,19 +26,14 @@ class ObjectCounter:
         self.track_history = defaultdict(list)
         self.draw_tracks = False
 
-        # Annotator count
-        self.pos_x_y = []
-
     def set_arguments(self,
                       classes_names,
                       reg_pts,
                       line_thickness = 2,
-                      view_img = False,
                       draw_tracks=False
                       ):
         self.names = classes_names
         self.tf = line_thickness
-        self.view_img = view_img
         self.reg_pts = reg_pts
         self.draw_tracks = draw_tracks
     
@@ -66,21 +58,24 @@ class ObjectCounter:
                 # Draw Tracks
                 track_line = self.track_history[track_id]
                 track_line.append((float((box[0] + box[2]) / 2), float((box[1] + box[3]) / 2)))
+                # Keep only the last 30 points
                 if len(track_line) > 30:
                     track_line.pop(0)
 
+                # Draw tracks if draw_tracks is True
                 if self.draw_tracks:
                     self.annotator.draw_centroid_and_tracks(track_line,
                                                             color = (255, 255, 255),
                                                             track_thickness = 1)
                 
-                # 0 is x and 1 is y
+                # 0 is x and 1 is y for main road
                 if track_line[-1][0] > self.reg_pts[0][0] and track_line[-1][1] >= self.reg_pts[0][1] + 2:
                     if track_id not in self.counting_list:
                         self.counting_list.append(track_id)
                         if box[0] < int(self.reg_pts[0][0] + self.reg_pts[1][0] / 2):
                             self.main_road += 1
                 
+                # 0 is x and 1 is y for sub road
                 if track_line[-1][0] <= self.reg_pts[2][0] and track_line[-1][1] >= self.reg_pts[2][1] - 2:
                     if track_id not in self.counting_list:
                         self.counting_list.append(track_id)
